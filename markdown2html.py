@@ -6,16 +6,6 @@ Script to convert Markdown to HTML
 import sys
 import os
 
-try:
-    import markdown
-except ImportError:
-    print(
-        "The 'markdown' module is not installed. "
-        "Install it using 'pip install markdown'.",
-        file=sys.stderr
-    )
-    sys.exit(1)
-
 
 def convert_markdown_to_html(input_file, output_file):
     """
@@ -27,9 +17,19 @@ def convert_markdown_to_html(input_file, output_file):
     """
     try:
         with open(input_file, 'r') as md_file:
-            md_content = md_file.read()
+            md_lines = md_file.readlines()
 
-        html_content = markdown.markdown(md_content)
+        html_content = ""
+        for line in md_lines:
+            # Check for heading syntax
+            if line.startswith('#'):
+                heading_level = len(line.split(' ')[0])
+                heading_text = line.strip('#').strip()
+                html_content += (
+                    f"<h{heading_level}>{heading_text}</h{heading_level}>\n"
+                )
+            else:
+                html_content += line
 
         with open(output_file, 'w') as html_file:
             html_file.write(html_content)
