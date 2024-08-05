@@ -3,6 +3,21 @@ Description
 Markdown is awesome! All your README.md are made in Markdown, but do you know how GitHub are rendering them?
 
 It’s time to code a Markdown to HTML!
+# Markdown to HTML Converter
+
+This project contains a Python script to convert Markdown files to HTML.
+
+## Requirements
+
+- Python 3.7 or higher
+- `markdown` module (`pip install markdown`)
+
+## Usage
+
+To use the script, run the following command:
+
+```sh
+./markdown2html.py input_file.md output_file.html
 
 Requirements
 All your files will be interpreted/compiled on Ubuntu 18.04 LTS using python3 (version 3.7 or higher)
