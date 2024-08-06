@@ -7,6 +7,14 @@ import sys
 import os
 import re
 
+def convert_text_formatting(text):
+    """
+    Convert Markdown bold (**text**) and emphasis (__text__) to HTML.
+    """
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    text = re.sub(r'__(.*?)__', r'<em>\1</em>', text)
+    return text
+
 def markdown_to_html(markdown_content):
     html_content = []
     in_unordered_list = False
@@ -33,7 +41,7 @@ def markdown_to_html(markdown_content):
                 in_paragraph = False
                 paragraph_lines = []
             level = len(header_match.group(1))
-            html_content.append('<h{level}>{text}</h{level}>'.format(level=level, text=header_match.group(2)))
+            html_content.append('<h{level}>{text}</h{level}>'.format(level=level, text=convert_text_formatting(header_match.group(2))))
         elif unordered_list_match:
             if in_ordered_list:
                 html_content.append('</ol>')
@@ -46,7 +54,7 @@ def markdown_to_html(markdown_content):
             if not in_unordered_list:
                 html_content.append('<ul>')
                 in_unordered_list = True
-            html_content.append('<li>{}</li>'.format(unordered_list_match.group(1)))
+            html_content.append('<li>{}</li>'.format(convert_text_formatting(unordered_list_match.group(1))))
         elif ordered_list_match:
             if in_unordered_list:
                 html_content.append('</ul>')
@@ -59,7 +67,7 @@ def markdown_to_html(markdown_content):
             if not in_ordered_list:
                 html_content.append('<ol>')
                 in_ordered_list = True
-            html_content.append('<li>{}</li>'.format(ordered_list_match.group(1)))
+            html_content.append('<li>{}</li>'.format(convert_text_formatting(ordered_list_match.group(1))))
         elif line:
             if in_unordered_list:
                 html_content.append('</ul>')
@@ -70,7 +78,7 @@ def markdown_to_html(markdown_content):
             if not in_paragraph:
                 html_content.append('<p>')
                 in_paragraph = True
-            paragraph_lines.append(line)
+            paragraph_lines.append(convert_text_formatting(line))
         else:
             if in_paragraph:
                 html_content.append('<br/>'.join(paragraph_lines))
