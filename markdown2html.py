@@ -9,33 +9,54 @@ import re
 
 def markdown_to_html(markdown_content):
     html_content = []
-    in_list = False
+    in_unordered_list = False
+    in_ordered_list = False
 
     for line in markdown_content:
         line = line.strip()
         header_match = re.match(r'^(#{1,6})\s+(.*)', line)
-        list_match = re.match(r'^-\s+(.*)', line)
+        unordered_list_match = re.match(r'^-\s+(.*)', line)
+        ordered_list_match = re.match(r'^\*\s+(.*)', line)
         
         if header_match:
-            if in_list:
+            if in_unordered_list:
                 html_content.append('</ul>')
-                in_list = False
+                in_unordered_list = False
+            if in_ordered_list:
+                html_content.append('</ol>')
+                in_ordered_list = False
             level = len(header_match.group(1))
             html_content.append('<h{level}>{text}</h{level}>'.format(level=level, text=header_match.group(2)))
-        elif list_match:
-            if not in_list:
+        elif unordered_list_match:
+            if in_ordered_list:
+                html_content.append('</ol>')
+                in_ordered_list = False
+            if not in_unordered_list:
                 html_content.append('<ul>')
-                in_list = True
-            html_content.append('<li>{}</li>'.format(list_match.group(1)))
-        else:
-            if in_list:
+                in_unordered_list = True
+            html_content.append('<li>{}</li>'.format(unordered_list_match.group(1)))
+        elif ordered_list_match:
+            if in_unordered_list:
                 html_content.append('</ul>')
-                in_list = False
+                in_unordered_list = False
+            if not in_ordered_list:
+                html_content.append('<ol>')
+                in_ordered_list = True
+            html_content.append('<li>{}</li>'.format(ordered_list_match.group(1)))
+        else:
+            if in_unordered_list:
+                html_content.append('</ul>')
+                in_unordered_list = False
+            if in_ordered_list:
+                html_content.append('</ol>')
+                in_ordered_list = False
             if line:  # To avoid adding empty lines
                 html_content.append(line)
 
-    if in_list:
+    if in_unordered_list:
         html_content.append('</ul>')
+    if in_ordered_list:
+        html_content.append('</ol>')
 
     return '\n'.join(html_content)
 
@@ -61,3 +82,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
