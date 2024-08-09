@@ -26,15 +26,19 @@ if __name__ == '__main__':
 
     with open(input_file, encoding='utf-8') as file_1:
         html_content = []
-        md_content = [line.strip() for line in file_1.readlines()]
+        md_content = [line.rstrip() for line in file_1.readlines()]
 
         in_list = False
         in_ordered_list = False
+        paragraph_open = False
 
         for line in md_content:
             # Handle headings
             heading = re.split(r'#{1,6} ', line)
             if len(heading) > 1:
+                if paragraph_open:
+                    html_content.append('</p>\n')
+                    paragraph_open = False
                 h_level = len(line[:line.find(heading[1])-1])
                 html_content.append(
                     f'<h{h_level}>{heading[1]}</h{h_level}>\n'
@@ -42,6 +46,9 @@ if __name__ == '__main__':
 
             # Handle unordered lists
             elif line.startswith('- '):
+                if paragraph_open:
+                    html_content.append('</p>\n')
+                    paragraph_open = False
                 if not in_list:
                     html_content.append('<ul>\n')
                     in_list = True
@@ -52,6 +59,9 @@ if __name__ == '__main__':
 
             # Handle ordered lists
             elif line.startswith('* '):
+                if paragraph_open:
+                    html_content.append('</p>\n')
+                    paragraph_open = False
                 if not in_ordered_list:
                     html_content.append('<ol>\n')
                     in_ordered_list = True
@@ -62,26 +72,28 @@ if __name__ == '__main__':
 
             # Handle paragraphs and line breaks
             elif line:
-                if line != "":
-                    line = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', line)
-                    line = re.sub(r'__(.+?)__', r'<em>\1</em>', line)
-                    line = re.sub(r'\[\[(.+?)\]\]', lambda match: hashlib.md5(match.group(1).encode()).hexdigest(), line)
-                    line = re.sub(r'\(\((.+?)\)\)', lambda match: match.group(1).replace('c', '').replace('C', ''), line)
-                    if html_content and html_content[-1].strip() and not html_content[-1].startswith('<p>'):
-                        html_content.append('<p>\n')
-                    html_content.append(line + '\n')
-                if html_content and html_content[-1].strip() and not html_content[-1].startswith('<br/>'):
-                    html_content.append('<br/>\n')
+                if not paragraph_open:
+                    html_content.append('<p>\n')
+                    paragraph_open = True
+                line = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', line)
+                line = re.sub(r'__(.+?)__', r'<em>\1</em>', line)
+                line = re.sub(r'\[\[(.+?)\]\]', lambda match: hashlib.md5(match.group(1).encode()).hexdigest(), line)
+                line = re.sub(r'\(\((.+?)\)\)', lambda match: match.group(1).replace('c', '').replace('C', ''), line)
+                html_content.append(line + '<br/>\n')
 
-            # Add a closing </p> tag after the last paragraph
-            if line == "" and html_content and html_content[-1].strip().startswith('<p>'):
+            # Close paragraph on empty line
+            if not line and paragraph_open:
+                html_content[-1] = html_content[-1].replace('<br/>', '')
                 html_content.append('</p>\n')
+                paragraph_open = False
 
-        # Ensure any open lists are closed
+        # Ensure any open lists or paragraphs are closed
         if in_list:
             html_content.append('</ul>\n')
         if in_ordered_list:
             html_content.append('</ol>\n')
+        if paragraph_open:
+            html_content.append('</p>\n')
 
     with open(output_file, 'w', encoding='utf-8') as file_2:
         file_2.writelines(html_content)
