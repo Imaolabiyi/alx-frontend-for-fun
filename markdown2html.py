@@ -1,86 +1,43 @@
 #!/usr/bin/python3
-"""
-Markdown to HTML script with additional parsing for custom bold syntax.
-"""
+'''
+A script that codes markdown to HTML
+'''
 import sys
+import os
 import re
-import hashlib
 
-def md5_hash(content):
-    return hashlib.md5(content.encode()).hexdigest()
+if __name__ == '__main__':
 
-def remove_c(content):
-    return re.sub(r'c', '', content, flags=re.IGNORECASE)
-
-def parse_markdown_to_html(markdown_text):
-    html_lines = []
-    in_list = False
-    paragraphs = []
-    
-    for line in markdown_text.split('\n'):
-        line = line.strip()
-        
-        if not line:
-            if in_list:
-                html_lines.append('</ul>')
-                in_list = False
-            if paragraphs:
-                html_lines.append('<p>' + '<br/>\n'.join(paragraphs) + '</p>')
-                paragraphs = []
-            continue
-        
-        # Heading
-        if line.startswith('# '):
-            if paragraphs:
-                html_lines.append('<p>' + '<br/>\n'.join(paragraphs) + '</p>')
-                paragraphs = []
-            html_lines.append(f'<h1>{line[2:].strip()}</h1>')
-        elif line.startswith('- '):
-            if paragraphs:
-                html_lines.append('<p>' + '<br/>\n'.join(paragraphs) + '</p>')
-                paragraphs = []
-            if not in_list:
-                in_list = True
-                html_lines.append('<ul>')
-            # Bold with ** inside list
-            line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', line[2:].strip())
-            html_lines.append(f'<li>{line}</li>')
-        else:
-            # Bold with **
-            line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', line)
-            # Italic with __
-            line = re.sub(r'__(.*?)__', r'<em>\1</em>', line)
-            # MD5 hash with [[...]]
-            line = re.sub(r'\[\[(.*?)\]\]', lambda match: md5_hash(match.group(1)), line)
-            # Remove 'c' with ((...))
-            line = re.sub(r'\(\((.*?)\)\)', lambda match: remove_c(match.group(1)), line)
-            paragraphs.append(line)
-    
-    if in_list:
-        html_lines.append('</ul>')
-    if paragraphs:
-        html_lines.append('<p>' + '<br/>\n'.join(paragraphs) + '</p>')
-
-    return '\n'.join(html_lines)
-
-if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: ./markdown2html.py README.md README.html")
-        sys.exit(1)
-    
-    markdown_file = sys.argv[1]
-    html_file = sys.argv[2]
-    
-    try:
-        with open(markdown_file, 'r') as md_file:
-            markdown_text = md_file.read()
-        
-        html_content = parse_markdown_to_html(markdown_text)
-        
-        with open(html_file, 'w') as html_file:
-            html_file.write(html_content)
-    
-    except Exception as e:
-        print(f"Error: {e}")
+    # Test that the number of arguments passed is 2
+    if len(sys.argv[1:]) != 2:
+        print('Usage: ./markdown2html.py README.md README.html',
+              file=sys.stderr)
         sys.exit(1)
 
+    # Store the arguments into variables
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
+
+    # Checks that the markdown file exists and is a file
+    if not (os.path.exists(input_file) and os.path.isfile(input_file)):
+        print(f'Missing {input_file}', file=sys.stderr)
+        sys.exit(1)
+
+    with open(input_file, encoding='utf-8') as file_1:
+        html_content = []
+        md_content = [line[:-1] for line in file_1.readlines()]
+        for line in md_content:
+            heading = re.split(r'#{1,6} ', line)
+            if len(heading) > 1:
+                # Compute the number of the # present to
+                # determine heading level
+                h_level = len(line[:line.find(heading[1])-1])
+                # Append the html equivalent of the heading
+                html_content.append(
+                    f'<h{h_level}>{heading[1]}</h{h_level}>\n'
+                )
+            else:
+                html_content.append(line)
+
+    with open(output_file, 'w', encoding='utf-8') as file_2:
+        file_2.writelines(html_content)
