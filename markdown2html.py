@@ -26,7 +26,7 @@ if __name__ == '__main__':
         html_content = []
         md_content = [line.rstrip() for line in file_1.readlines()]
 
-        in_list = False
+        in_unordered_list = False
         in_ordered_list = False
         paragraph_open = False
 
@@ -40,29 +40,45 @@ if __name__ == '__main__':
                 h_level = len(heading.group(1))
                 html_content.append(f'<h{h_level}>{heading.group(2)}</h{h_level}>\n')
 
-            # Handle unordered lists
+            # Handle unordered lists (with '- ')
             elif line.startswith('- '):
                 if paragraph_open:
                     html_content.append('</p>\n')
                     paragraph_open = False
-                if not in_list:
+                if not in_unordered_list:
                     html_content.append('<ul>\n')
-                    in_list = True
-                html_content.append(f'  <li>{line[2:]}</li>\n')
-            elif in_list and not line.startswith('- '):
+                    in_unordered_list = True
+                line_content = line[2:]
+                # Replace **text** with <b>text</b> and __text__ with <em>text</em>
+                line_content = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', line_content)
+                line_content = re.sub(r'__(.+?)__', r'<em>\1</em>', line_content)
+                # Replace [[text]] with MD5 hash of text
+                line_content = re.sub(r'\[\[(.+?)\]\]', lambda match: hashlib.md5(match.group(1).encode()).hexdigest(), line_content)
+                # Replace ((text)) by removing 'c' or 'C' from the text
+                line_content = re.sub(r'\(\((.+?)\)\)', lambda match: match.group(1).replace('c', '').replace('C', ''), line_content)
+                html_content.append(f'  <li>{line_content}</li>\n')
+            elif in_unordered_list and not line.startswith('- '):
                 html_content.append('</ul>\n')
-                in_list = False
+                in_unordered_list = False
 
-            # Handle ordered lists
-            elif re.match(r'^\d+\.\s+', line):
+            # Handle ordered lists (with '* ')
+            elif line.startswith('* '):
                 if paragraph_open:
                     html_content.append('</p>\n')
                     paragraph_open = False
                 if not in_ordered_list:
                     html_content.append('<ol>\n')
                     in_ordered_list = True
-                html_content.append(f'  <li>{line[line.find(" ") + 1:]}</li>\n')
-            elif in_ordered_list and not re.match(r'^\d+\.\s+', line):
+                line_content = line[2:]
+                # Replace **text** with <b>text</b> and __text__ with <em>text</em>
+                line_content = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', line_content)
+                line_content = re.sub(r'__(.+?)__', r'<em>\1</em>', line_content)
+                # Replace [[text]] with MD5 hash of text
+                line_content = re.sub(r'\[\[(.+?)\]\]', lambda match: hashlib.md5(match.group(1).encode()).hexdigest(), line_content)
+                # Replace ((text)) by removing 'c' or 'C' from the text
+                line_content = re.sub(r'\(\((.+?)\)\)', lambda match: match.group(1).replace('c', '').replace('C', ''), line_content)
+                html_content.append(f'  <li>{line_content}</li>\n')
+            elif in_ordered_list and not line.startswith('* '):
                 html_content.append('</ol>\n')
                 in_ordered_list = False
 
@@ -78,7 +94,11 @@ if __name__ == '__main__':
                 line = re.sub(r'\[\[(.+?)\]\]', lambda match: hashlib.md5(match.group(1).encode()).hexdigest(), line)
                 # Replace ((text)) by removing 'c' or 'C' from the text
                 line = re.sub(r'\(\((.+?)\)\)', lambda match: match.group(1).replace('c', '').replace('C', ''), line)
-                html_content.append(line + '<br/>\n')
+                # Handle line breaks within paragraphs
+                if paragraph_open and not line.endswith('<br/>'):
+                    html_content.append(line + '<br/>\n')
+                else:
+                    html_content.append(line + '\n')
 
             # Close paragraph on empty line
             if not line and paragraph_open:
@@ -87,7 +107,7 @@ if __name__ == '__main__':
                 paragraph_open = False
 
         # Ensure any open lists or paragraphs are closed
-        if in_list:
+        if in_unordered_list:
             html_content.append('</ul>\n')
         if in_ordered_list:
             html_content.append('</ol>\n')
@@ -96,3 +116,4 @@ if __name__ == '__main__':
 
     with open(output_file, 'w', encoding='utf-8') as file_2:
         file_2.writelines(html_content)
+
